@@ -1,37 +1,41 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import requests
-import uuid
+
 
 app = FastAPI()
 
 orders = {}
+order_counter = 1
 
-# IMPORTANT: We'll change this URL when we run both services together
-PAYMENT_SERVICE_URL = "http://payment-service:5001/pay"
+# Use container/service name in Docker, replace with real URL in deployment
+PAYMENT_SERVICE_URL = "http://54.81.163.88:5001/pay"
 
-class OrderRequest(BaseModel):
+class Order(BaseModel):
     product: str
     price: float
 
 @app.post("/orders")
-def create_order(order: OrderRequest):
-    order_id = str(uuid.uuid4())
-    
+def create_order(order: Order):
+    global order_counter 
+    order_id = str(order_counter)
+    order_counter += 1
     try:
-        response = requests.post(PAYMENT_SERVICE_URL, json={
+        res = requests.post(PAYMENT_SERVICE_URL, json={
             "order_id": order_id,
             "amount": order.price
         })
-        payment_data = response.json()
-    except Exception:
-        raise HTTPException(status_code=500, detail="Payment service not reachable")
+        if res.status_code != 200:
+            raise HTTPException(status_code=500, detail="Payment failed")
+        payment = res.json()
+    except:
+        raise HTTPException(status_code=500, detail="Payment service error 2")
 
     orders[order_id] = {
         "order_id": order_id,
         "product": order.product,
         "price": order.price,
-        "payment_status": payment_data.get("status")
+        "payment_status": payment["status"]
     }
 
     return orders[order_id]

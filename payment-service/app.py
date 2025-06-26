@@ -4,15 +4,13 @@ import random
 
 app = FastAPI()
 
-class PaymentRequest(BaseModel):
+class Payment(BaseModel):
     order_id: str
     amount: float
 
 @app.post("/pay")
-def process_payment(payment: PaymentRequest):
-    # Simulate a random approval
+def pay(payment: Payment):
     status = random.choice(["approved", "declined"])
-    
     return {
         "order_id": payment.order_id,
         "amount": payment.amount,
